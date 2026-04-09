@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { format, formatISO, isSunday, isToday, parseISO } from "date-fns";
+import { format, formatISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   CalendarIcon,
@@ -24,11 +24,9 @@ import {
 } from "@workspace/api-client-react";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { BookingCalendar } from "@/components/BookingCalendar";
 
 import img1 from "@assets/Screenshot_2026-04-09-13-11-24-389_com.whatsapp-edit_1775751197771.jpg";
 import img2 from "@assets/Screenshot_2026-04-09-13-11-55-006_com.whatsapp-edit_1775751197834.jpg";
@@ -348,30 +346,33 @@ export default function Home() {
 
                 {/* ── STEP 2: Date & Time ── */}
                 {step === 2 && !submitted && (
-                  <motion.div key="step2" custom={dir} variants={slideVariants} initial="enter" animate="center" exit="exit" className="p-8 md:p-10">
+                  <motion.div key="step2" custom={dir} variants={slideVariants} initial="enter" animate="center" exit="exit" className="p-6 md:p-10">
                     <p className="text-xs uppercase tracking-widest text-accent mb-6 font-bold">Passo 2 — Escolha a data e horário</p>
-                    <div className="flex flex-col lg:flex-row gap-8">
-                      {/* Calendar */}
-                      <div className="flex-shrink-0 flex justify-center lg:justify-start">
-                        <Calendar
-                          mode="single"
+
+                    {/* Two-column on md+, stacked on mobile */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+                      {/* Calendar column */}
+                      <div>
+                        <p className="text-[10px] uppercase tracking-widest text-white/40 mb-4 font-bold">Data</p>
+                        <BookingCalendar
                           selected={selectedDate}
                           onSelect={(d) => { setSelectedDate(d); setSelectedTime(""); setErrors({}); }}
-                          disabled={(date) => { const today = new Date(); today.setHours(0, 0, 0, 0); return date < today || isSunday(date); }}
-                          locale={ptBR}
-                          className="bg-transparent text-white rounded-none border border-white/10 p-4 [&_button]:text-white [&_button:hover]:bg-white/10 [&_button:disabled]:text-white/20 [&_[aria-selected]]:bg-white [&_[aria-selected]]:text-black"
-                          data-testid="calendar-date"
                         />
+                        {errors.date && <p className="text-accent text-xs mt-3">{errors.date}</p>}
                       </div>
 
-                      {/* Time slots */}
-                      <div className="flex-1">
+                      {/* Time slots column */}
+                      <div>
+                        <p className="text-[10px] uppercase tracking-widest text-white/40 mb-4 font-bold">
+                          {selectedDate
+                            ? format(selectedDate, "EEEE, d 'de' MMMM", { locale: ptBR })
+                            : "Horário"}
+                        </p>
+
                         {selectedDate ? (
                           <>
-                            <p className="text-xs uppercase tracking-widest text-white/50 mb-4">
-                              {format(selectedDate, "EEEE, d 'de' MMMM", { locale: ptBR })}
-                            </p>
-                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                            <div className="grid grid-cols-3 gap-2">
                               {ALL_HOURS.map((t) => {
                                 const isAvail = availableHours.includes(t);
                                 const isSel = selectedTime === t;
@@ -382,10 +383,12 @@ export default function Home() {
                                     onClick={() => { setSelectedTime(t); setErrors({}); }}
                                     data-testid={`button-time-${t}`}
                                     className={cn(
-                                      "py-2.5 text-sm font-medium border transition-all duration-150",
-                                      isSel ? "bg-white text-black border-white" :
-                                      isAvail ? "border-white/20 text-white hover:border-white hover:bg-white/10" :
-                                      "border-white/5 text-white/20 cursor-not-allowed line-through"
+                                      "py-3 text-sm font-medium border transition-all duration-150",
+                                      isSel
+                                        ? "bg-white text-black border-white"
+                                        : isAvail
+                                        ? "border-white/20 text-white hover:border-white hover:bg-white/10"
+                                        : "border-white/5 text-white/15 cursor-not-allowed line-through"
                                     )}
                                   >
                                     {t}
@@ -393,17 +396,17 @@ export default function Home() {
                                 );
                               })}
                             </div>
-                            {errors.time && <p className="text-accent text-sm mt-3">{errors.time}</p>}
+                            {errors.time && <p className="text-accent text-xs mt-3">{errors.time}</p>}
                           </>
                         ) : (
-                          <div className="flex flex-col items-center justify-center h-full text-white/30 text-sm gap-3 min-h-[180px]">
-                            <CalendarIcon className="w-10 h-10 opacity-30" />
-                            <p className="uppercase tracking-widest text-xs">Selecione uma data ao lado</p>
+                          <div className="flex flex-col items-center justify-center text-white/20 gap-3 py-12 border border-white/5">
+                            <CalendarIcon className="w-8 h-8" />
+                            <p className="uppercase tracking-widest text-[10px]">Selecione uma data primeiro</p>
                           </div>
                         )}
                       </div>
                     </div>
-                    {errors.date && <p className="text-accent text-sm mt-3">{errors.date}</p>}
+
                     <div className="flex justify-between mt-8">
                       <Button onClick={back} variant="ghost" className="text-white/50 hover:text-white rounded-none h-12 px-6 text-xs uppercase tracking-widest" data-testid="button-back-step2">
                         <ChevronLeft className="w-4 h-4 mr-1" /> Voltar
