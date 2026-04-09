@@ -99,7 +99,7 @@ export default function Home() {
     ];
     const message = lines.join("\n");
     setSubmitted(true);
-    window.open(`https://wa.me/5527988513627?text=${encodeURIComponent(message)}`, "_blank");
+    window.open(`https://wa.me/5527988995055?text=${encodeURIComponent(message)}`, "_blank");
   }
 
   function resetBooking() {
@@ -451,9 +451,9 @@ export default function Home() {
                   <Instagram className="w-4 h-4" />
                   @barbearia.rockyamaral
                 </a>
-                <a href="https://wa.me/5527988513627" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-white/60 hover:text-white transition-colors text-sm">
+                <a href="https://wa.me/5527988995055" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-white/60 hover:text-white transition-colors text-sm">
                   <Phone className="w-4 h-4" />
-                  (27) 98851-3627
+                  (27) 98899-5055
                 </a>
                 <div className="flex items-start gap-2 text-white/60 text-sm">
                   <MapPin className="w-4 h-4 shrink-0 mt-0.5" />
