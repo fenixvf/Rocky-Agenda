@@ -3,13 +3,17 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: API specification for Barbearia Rocky Amaral
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: appointments
+    description: Appointment booking operations
+  - name: services
+    description: Barber services operations
 paths:
   /healthz:
     get:
@@ -24,6 +28,67 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /services:
+    get:
+      operationId: listServices
+      tags: [services]
+      summary: List all barber services
+      responses:
+        "200":
+          description: List of services
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Service"
+
+  /appointments:
+    post:
+      operationId: createAppointment
+      tags: [appointments]
+      summary: Create a new appointment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAppointmentBody"
+      responses:
+        "201":
+          description: Appointment created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Appointment"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /appointments/available-times:
+    get:
+      operationId: getAvailableTimes
+      tags: [appointments]
+      summary: Get available time slots for a date
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            description: Date in YYYY-MM-DD format
+      responses:
+        "200":
+          description: List of available times
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AvailableTimes"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +99,104 @@ components:
       required:
         - status
 
+    Service:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        durationMinutes:
+          type: integer
+      required:
+        - id
+        - name
+        - description
+        - price
+        - durationMinutes
+
+    CreateAppointmentBody:
+      type: object
+      properties:
+        clientName:
+          type: string
+        clientPhone:
+          type: string
+        serviceId:
+          type: integer
+        date:
+          type: string
+          description: Date in YYYY-MM-DD format
+        time:
+          type: string
+          description: Time in HH:MM format
+        notes:
+          type: string
+      required:
+        - clientName
+        - clientPhone
+        - serviceId
+        - date
+        - time
+
+    Appointment:
+      type: object
+      properties:
+        id:
+          type: integer
+        clientName:
+          type: string
+        clientPhone:
+          type: string
+        serviceId:
+          type: integer
+        serviceName:
+          type: string
+        date:
+          type: string
+        time:
+          type: string
+        notes:
+          type: string
+        status:
+          type: string
+        whatsappLink:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - clientName
+        - clientPhone
+        - serviceId
+        - serviceName
+        - date
+        - time
+        - status
+        - whatsappLink
+        - createdAt
+
+    AvailableTimes:
+      type: object
+      properties:
+        date:
+          type: string
+        times:
+          type: array
+          items:
+            type: string
+      required:
+        - date
+        - times
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error

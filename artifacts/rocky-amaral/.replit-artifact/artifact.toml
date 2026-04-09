@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Barbearia Rocky Amaral"
+version = "1.0.0"
+id = "artifacts/rocky-amaral"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19448
+
+[services.development]
+run = "pnpm --filter @workspace/rocky-amaral run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/rocky-amaral", "run", "build" ]
+publicDir = "artifacts/rocky-amaral/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19448"
+BASE_PATH = "/"
