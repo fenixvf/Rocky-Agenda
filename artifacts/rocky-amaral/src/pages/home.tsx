@@ -13,8 +13,6 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-import { useListServices } from "@workspace/api-client-react";
-
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -48,8 +46,7 @@ const staggerContainer = {
 };
 
 export default function Home() {
-  const { data: servicesData } = useListServices();
-  const services = servicesData || FALLBACK_SERVICES;
+  const services = FALLBACK_SERVICES;
 
   const [step, setStep] = useState(1);
   const [dir, setDir] = useState(1);
