@@ -70,7 +70,7 @@ const FALLBACK_SERVICES = [
 ];
 
 const AVAILABLE_HOURS = [
-  "09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"
+  "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"
 ];
 
 const formSchema = z.object({
@@ -499,6 +499,45 @@ export default function Home() {
         </div>
       </section>
 
+      {/* MAP SECTION */}
+      <section className="bg-black border-t border-white/10">
+        <div className="max-w-6xl mx-auto px-6 py-16">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeInUp}
+            className="mb-10"
+          >
+            <h2 className="text-3xl md:text-4xl font-serif font-bold mb-3">Como nos encontrar</h2>
+            <div className="flex items-center gap-3 text-white/60 text-sm mt-4">
+              <MapPin className="w-4 h-4 text-accent shrink-0" />
+              <span>Av. Jacaranema, 315 — Santa Paula 1, Vila Velha - ES</span>
+            </div>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="w-full overflow-hidden border border-white/10"
+            style={{ height: 380 }}
+          >
+            <iframe
+              title="Localização Barbearia Rocky Amaral"
+              src="https://maps.google.com/maps?q=Av.+Jacaranema+315+Santa+Paula+Vila+Velha+ES+Brazil&output=embed&z=16"
+              width="100%"
+              height="100%"
+              style={{ border: 0, filter: "invert(90%) hue-rotate(180deg) saturate(0.8)" }}
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              data-testid="map-embed"
+            />
+          </motion.div>
+        </div>
+      </section>
+
       {/* FOOTER */}
       <footer className="bg-black border-t border-white/10 pt-20 pb-10 px-6">
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 mb-16">
@@ -514,7 +553,7 @@ export default function Home() {
             <ul className="space-y-4 text-white/70">
               <li className="flex items-start gap-3">
                 <MapPin className="w-5 h-5 text-white/40 shrink-0" />
-                <span className="text-sm">Av. Exemplo, 123 - Centro<br/>Vitória - ES</span>
+                <span className="text-sm">Av. Jacaranema, 315<br/>Santa Paula 1, Vila Velha - ES</span>
               </li>
               <li className="flex items-center gap-3">
                 <Phone className="w-5 h-5 text-white/40 shrink-0" />
@@ -526,17 +565,13 @@ export default function Home() {
           </div>
           
           <div>
-            <h4 className="text-xs uppercase tracking-widest text-accent mb-6 font-bold">Horário</h4>
+            <h4 className="text-xs uppercase tracking-widest text-accent mb-6 font-bold">Horário de Funcionamento</h4>
             <ul className="space-y-2 text-white/70 text-sm">
               <li className="flex justify-between border-b border-white/5 pb-2">
-                <span>Segunda - Sexta</span>
-                <span>09:00 - 19:00</span>
+                <span>Segunda — Sábado</span>
+                <span>08:00 — 21:00</span>
               </li>
-              <li className="flex justify-between border-b border-white/5 pb-2">
-                <span>Sábado</span>
-                <span>09:00 - 17:00</span>
-              </li>
-              <li className="flex justify-between border-white/5 pb-2 text-white/40">
+              <li className="flex justify-between pb-2 text-white/40">
                 <span>Domingo</span>
                 <span>Fechado</span>
               </li>
@@ -547,7 +582,9 @@ export default function Home() {
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between pt-8 border-t border-white/10 text-xs text-white/40">
           <p>© 2025 Rocky Amaral Barbearia. Todos os direitos reservados.</p>
           <div className="flex gap-6 mt-4 md:mt-0">
-            <a href="#" className="hover:text-accent transition-colors"><Instagram className="w-4 h-4" /></a>
+            <a href="https://www.instagram.com/barbearia.rockyamaral?igsh=cTIyNmh1c2V4ejJp" target="_blank" rel="noreferrer" className="hover:text-accent transition-colors" data-testid="link-instagram">
+              <Instagram className="w-4 h-4" />
+            </a>
           </div>
         </div>
       </footer>
