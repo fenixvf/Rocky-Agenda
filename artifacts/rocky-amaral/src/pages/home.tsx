@@ -1,8 +1,5 @@
 import { useState } from "react";
-import { format, formatISO } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import {
-  CalendarIcon,
   MapPin,
   Phone,
   Instagram,
@@ -16,17 +13,10 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-import {
-  useListServices,
-  useCreateAppointment,
-  useGetAvailableTimes,
-  getGetAvailableTimesQueryKey,
-} from "@workspace/api-client-react";
+import { useListServices } from "@workspace/api-client-react";
 
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { BookingCalendar } from "@/components/BookingCalendar";
 
 import img1 from "@assets/Screenshot_2026-04-09-13-11-24-389_com.whatsapp-edit_1775751197771.jpg";
 import img2 from "@assets/Screenshot_2026-04-09-13-11-55-006_com.whatsapp-edit_1775751197834.jpg";
@@ -40,16 +30,9 @@ const FALLBACK_SERVICES = [
   { id: 4, name: "Degradê", description: "Degradê moderno com acabamento preciso", price: 35, durationMinutes: 45 },
 ];
 
-const ALL_HOURS = [
-  "08:00", "09:00", "10:00", "11:00", "12:00",
-  "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00",
-];
-
 const STEPS = [
   { id: 1, label: "Serviço" },
-  { id: 2, label: "Data & Hora" },
-  { id: 3, label: "Seus Dados" },
-  { id: 4, label: "Confirmação" },
+  { id: 2, label: "Seus Dados" },
 ];
 
 const slideVariants = {
@@ -65,33 +48,18 @@ const staggerContainer = {
 };
 
 export default function Home() {
-  const { toast } = useToast();
-
-  // API
   const { data: servicesData } = useListServices();
   const services = servicesData || FALLBACK_SERVICES;
-  const createAppointment = useCreateAppointment();
 
-  // Wizard state
   const [step, setStep] = useState(1);
   const [dir, setDir] = useState(1);
 
   const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [selectedTime, setSelectedTime] = useState<string>("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
-
-  const selectedDateStr = selectedDate ? formatISO(selectedDate, { representation: "date" }) : undefined;
-
-  const { data: availableTimesData } = useGetAvailableTimes(
-    { date: selectedDateStr! },
-    { query: { enabled: !!selectedDateStr, queryKey: getGetAvailableTimesQueryKey({ date: selectedDateStr! }) } }
-  );
-  const availableHours = availableTimesData?.times || ALL_HOURS;
 
   const selectedService = services.find((s) => s.id === selectedServiceId);
 
@@ -104,10 +72,6 @@ export default function Home() {
     const newErrors: Record<string, string> = {};
     if (step === 1 && !selectedServiceId) newErrors.service = "Escolha um serviço para continuar.";
     if (step === 2) {
-      if (!selectedDate) newErrors.date = "Selecione uma data.";
-      if (!selectedTime) newErrors.time = "Selecione um horário.";
-    }
-    if (step === 3) {
       if (!name.trim() || name.trim().length < 2) newErrors.name = "Informe seu nome completo.";
       if (!phone.trim() || phone.trim().length < 10) newErrors.phone = "Informe um telefone válido.";
     }
@@ -124,39 +88,16 @@ export default function Home() {
   }
 
   function handleConfirm() {
-    const formattedDate = selectedDate ? format(selectedDate, "dd/MM/yyyy", { locale: ptBR }) : "";
-    const message = `Olá Rocky! Gostaria de agendar: ${selectedService?.name} - ${formattedDate} às ${selectedTime}. Nome: ${name}. Telefone: ${phone}.${notes ? ` Obs: ${notes}` : ""}`;
-
-    createAppointment.mutate(
-      {
-        data: {
-          clientName: name,
-          clientPhone: phone,
-          serviceId: selectedServiceId!,
-          date: selectedDateStr!,
-          time: selectedTime,
-          notes: notes || undefined,
-        },
-      },
-      {
-        onSuccess: (data) => {
-          setSubmitted(true);
-          window.open(data.whatsappLink || `https://wa.me/5527988995055?text=${encodeURIComponent(message)}`, "_blank");
-        },
-        onError: () => {
-          setSubmitted(true);
-          window.open(`https://wa.me/5527988995055?text=${encodeURIComponent(message)}`, "_blank");
-        },
-      }
-    );
+    if (!validateStep()) return;
+    const message = `Olá Rocky! Gostaria de agendar: *${selectedService?.name}*. Nome: ${name}. Telefone: ${phone}.${notes ? ` Obs: ${notes}` : ""}`;
+    setSubmitted(true);
+    window.open(`https://wa.me/5527988995055?text=${encodeURIComponent(message)}`, "_blank");
   }
 
   function resetBooking() {
     setStep(1);
     setDir(1);
     setSelectedServiceId(null);
-    setSelectedDate(undefined);
-    setSelectedTime("");
     setName("");
     setPhone("");
     setNotes("");
@@ -231,7 +172,10 @@ export default function Home() {
                   <span className="text-xl font-light">R$ {service.price}</span>
                 </div>
                 <p className="text-white/50 mb-4">{service.description}</p>
-                <div className="flex items-center text-xs uppercase tracking-widest text-accent/80 font-medium">{service.durationMinutes} min</div>
+                <div className="flex items-center gap-1.5 text-xs uppercase tracking-widest text-accent/80 font-medium">
+                  <Clock className="w-3 h-3" />
+                  {service.durationMinutes} min
+                </div>
               </motion.div>
             ))}
           </div>
@@ -261,12 +205,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── BOOKING WIZARD SECTION ── */}
+      {/* BOOKING SECTION */}
       <section id="agendar" className="py-32 px-6 bg-zinc-950 relative border-t border-white/5">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-2xl mx-auto">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp} className="mb-14">
             <h2 className="text-4xl md:text-6xl font-serif font-bold mb-4">Agende seu horário</h2>
-            <p className="text-white/60">Reserve sua cadeira. Rápido, fácil, sem complicação.</p>
+            <p className="text-white/60">Escolha o serviço e fale direto com a gente pelo WhatsApp.</p>
           </motion.div>
 
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp} className="bg-black border border-white/10">
@@ -276,7 +220,8 @@ export default function Home() {
               <div className="flex border-b border-white/10">
                 {STEPS.map((s, i) => (
                   <div key={s.id} className={cn("flex-1 py-4 px-3 flex flex-col items-center gap-1 transition-colors relative", step === s.id ? "bg-white/5" : "")}>
-                    <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 border",
+                    <div className={cn(
+                      "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 border",
                       step > s.id ? "bg-accent border-accent text-black" :
                       step === s.id ? "bg-white border-white text-black" :
                       "bg-transparent border-white/20 text-white/30"
@@ -295,10 +240,10 @@ export default function Home() {
             )}
 
             {/* Step content */}
-            <div className="overflow-hidden" style={{ minHeight: 420 }}>
+            <div className="overflow-hidden" style={{ minHeight: 360 }}>
               <AnimatePresence mode="wait" custom={dir}>
 
-                {/* ── STEP 1: Choose Service ── */}
+                {/* STEP 1: Choose Service */}
                 {step === 1 && !submitted && (
                   <motion.div key="step1" custom={dir} variants={slideVariants} initial="enter" animate="center" exit="exit" className="p-8 md:p-10">
                     <p className="text-xs uppercase tracking-widest text-accent mb-6 font-bold">Passo 1 — Escolha o serviço</p>
@@ -344,84 +289,22 @@ export default function Home() {
                   </motion.div>
                 )}
 
-                {/* ── STEP 2: Date & Time ── */}
+                {/* STEP 2: Personal Details */}
                 {step === 2 && !submitted && (
-                  <motion.div key="step2" custom={dir} variants={slideVariants} initial="enter" animate="center" exit="exit" className="p-6 md:p-10">
-                    <p className="text-xs uppercase tracking-widest text-accent mb-6 font-bold">Passo 2 — Escolha a data e horário</p>
+                  <motion.div key="step2" custom={dir} variants={slideVariants} initial="enter" animate="center" exit="exit" className="p-8 md:p-10">
+                    <p className="text-xs uppercase tracking-widest text-accent mb-6 font-bold">Passo 2 — Seus dados</p>
 
-                    {/* Two-column on md+, stacked on mobile */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-
-                      {/* Calendar column */}
-                      <div>
-                        <p className="text-[10px] uppercase tracking-widest text-white/40 mb-4 font-bold">Data</p>
-                        <BookingCalendar
-                          selected={selectedDate}
-                          onSelect={(d) => { setSelectedDate(d); setSelectedTime(""); setErrors({}); }}
-                        />
-                        {errors.date && <p className="text-accent text-xs mt-3">{errors.date}</p>}
+                    {/* Selected service summary */}
+                    {selectedService && (
+                      <div className="flex items-center gap-3 border border-white/10 px-4 py-3 mb-8 bg-white/3">
+                        <Scissors className="w-4 h-4 text-accent shrink-0" />
+                        <span className="text-sm text-white/70">
+                          <span className="text-white font-medium">{selectedService.name}</span>
+                          {" — "}R$ {selectedService.price}
+                        </span>
                       </div>
+                    )}
 
-                      {/* Time slots column */}
-                      <div>
-                        <p className="text-[10px] uppercase tracking-widest text-white/40 mb-4 font-bold">
-                          {selectedDate
-                            ? format(selectedDate, "EEEE, d 'de' MMMM", { locale: ptBR })
-                            : "Horário"}
-                        </p>
-
-                        {selectedDate ? (
-                          <>
-                            <div className="grid grid-cols-3 gap-2">
-                              {ALL_HOURS.map((t) => {
-                                const isAvail = availableHours.includes(t);
-                                const isSel = selectedTime === t;
-                                return (
-                                  <button
-                                    key={t}
-                                    disabled={!isAvail}
-                                    onClick={() => { setSelectedTime(t); setErrors({}); }}
-                                    data-testid={`button-time-${t}`}
-                                    className={cn(
-                                      "py-3 text-sm font-medium border transition-all duration-150",
-                                      isSel
-                                        ? "bg-white text-black border-white"
-                                        : isAvail
-                                        ? "border-white/20 text-white hover:border-white hover:bg-white/10"
-                                        : "border-white/5 text-white/15 cursor-not-allowed line-through"
-                                    )}
-                                  >
-                                    {t}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                            {errors.time && <p className="text-accent text-xs mt-3">{errors.time}</p>}
-                          </>
-                        ) : (
-                          <div className="flex flex-col items-center justify-center text-white/20 gap-3 py-12 border border-white/5">
-                            <CalendarIcon className="w-8 h-8" />
-                            <p className="uppercase tracking-widest text-[10px]">Selecione uma data primeiro</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between mt-8">
-                      <Button onClick={back} variant="ghost" className="text-white/50 hover:text-white rounded-none h-12 px-6 text-xs uppercase tracking-widest" data-testid="button-back-step2">
-                        <ChevronLeft className="w-4 h-4 mr-1" /> Voltar
-                      </Button>
-                      <Button onClick={next} className="bg-white text-black hover:bg-accent hover:text-black rounded-none h-12 px-8 text-xs font-bold uppercase tracking-widest" data-testid="button-next-step2">
-                        Próximo <ChevronRight className="w-4 h-4 ml-1" />
-                      </Button>
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* ── STEP 3: Personal Details ── */}
-                {step === 3 && !submitted && (
-                  <motion.div key="step3" custom={dir} variants={slideVariants} initial="enter" animate="center" exit="exit" className="p-8 md:p-10">
-                    <p className="text-xs uppercase tracking-widest text-accent mb-6 font-bold">Passo 3 — Seus dados</p>
                     <div className="space-y-8">
                       <div>
                         <label className="flex items-center gap-2 text-xs uppercase tracking-widest text-white/50 mb-3">
@@ -463,79 +346,33 @@ export default function Home() {
                         />
                       </div>
                     </div>
+
                     <div className="flex justify-between mt-8">
-                      <Button onClick={back} variant="ghost" className="text-white/50 hover:text-white rounded-none h-12 px-6 text-xs uppercase tracking-widest" data-testid="button-back-step3">
+                      <Button onClick={back} variant="ghost" className="text-white/50 hover:text-white rounded-none h-12 px-6 text-xs uppercase tracking-widest" data-testid="button-back-step2">
                         <ChevronLeft className="w-4 h-4 mr-1" /> Voltar
-                      </Button>
-                      <Button onClick={next} className="bg-white text-black hover:bg-accent hover:text-black rounded-none h-12 px-8 text-xs font-bold uppercase tracking-widest" data-testid="button-next-step3">
-                        Revisar <ChevronRight className="w-4 h-4 ml-1" />
-                      </Button>
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* ── STEP 4: Confirmation Summary ── */}
-                {step === 4 && !submitted && (
-                  <motion.div key="step4" custom={dir} variants={slideVariants} initial="enter" animate="center" exit="exit" className="p-8 md:p-10">
-                    <p className="text-xs uppercase tracking-widest text-accent mb-6 font-bold">Passo 4 — Confirme seu agendamento</p>
-
-                    <div className="border border-white/10 divide-y divide-white/10 mb-8">
-                      {[
-                        { icon: <Scissors className="w-4 h-4" />, label: "Serviço", value: selectedService ? `${selectedService.name} — R$ ${selectedService.price}` : "" },
-                        { icon: <CalendarIcon className="w-4 h-4" />, label: "Data", value: selectedDate ? format(selectedDate, "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR }) : "" },
-                        { icon: <Clock className="w-4 h-4" />, label: "Horário", value: selectedTime },
-                        { icon: <User className="w-4 h-4" />, label: "Nome", value: name },
-                        { icon: <Phone className="w-4 h-4" />, label: "Telefone", value: phone },
-                        ...(notes ? [{ icon: <MessageSquare className="w-4 h-4" />, label: "Observações", value: notes }] : []),
-                      ].map((row, i) => (
-                        <div key={i} className="flex items-start gap-4 p-4">
-                          <span className="text-white/30 mt-0.5 shrink-0">{row.icon}</span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs uppercase tracking-widest text-white/40 mb-0.5">{row.label}</p>
-                            <p className="text-white capitalize truncate">{row.value}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="bg-white/5 border border-white/10 p-4 mb-8 flex items-start gap-3">
-                      <CheckCircle2 className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-                      <p className="text-sm text-white/60 leading-relaxed">
-                        Ao confirmar, você será redirecionado ao <span className="text-white font-medium">WhatsApp</span> para finalizar o agendamento diretamente com a barbearia.
-                      </p>
-                    </div>
-
-                    <div className="flex justify-between">
-                      <Button onClick={back} variant="ghost" className="text-white/50 hover:text-white rounded-none h-12 px-6 text-xs uppercase tracking-widest" data-testid="button-back-step4">
-                        <ChevronLeft className="w-4 h-4 mr-1" /> Editar
                       </Button>
                       <Button
                         onClick={handleConfirm}
-                        disabled={createAppointment.isPending}
-                        className="bg-white text-black hover:bg-accent hover:text-black rounded-none h-12 px-8 text-xs font-bold uppercase tracking-widest transition-all duration-300 group"
-                        data-testid="button-submit-booking"
+                        className="bg-white text-black hover:bg-accent hover:text-black rounded-none h-12 px-8 text-xs font-bold uppercase tracking-widest"
+                        data-testid="button-confirm"
                       >
-                        {createAppointment.isPending ? "Aguarde..." : (
-                          <span className="flex items-center gap-2">
-                            Confirmar no WhatsApp
-                            <CheckCircle2 className="w-4 h-4" />
-                          </span>
-                        )}
+                        Enviar pelo WhatsApp <ChevronRight className="w-4 h-4 ml-1" />
                       </Button>
                     </div>
                   </motion.div>
                 )}
 
-                {/* ── SUCCESS STATE ── */}
+                {/* Success state */}
                 {submitted && (
-                  <motion.div key="success" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="p-8 md:p-10 flex flex-col items-center text-center" style={{ minHeight: 420 }}>
-                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2, type: "spring", stiffness: 200 }} className="w-16 h-16 rounded-full border border-accent flex items-center justify-center mb-6">
+                  <motion.div key="success" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="p-8 md:p-10 flex flex-col items-center text-center gap-6">
+                    <div className="w-16 h-16 rounded-full bg-accent/10 border border-accent/30 flex items-center justify-center">
                       <CheckCircle2 className="w-8 h-8 text-accent" />
-                    </motion.div>
-                    <h3 className="font-serif text-3xl font-bold mb-3">Agendamento enviado!</h3>
-                    <p className="text-white/60 mb-2 max-w-sm">Você foi redirecionado ao WhatsApp para confirmar com o Rocky Amaral.</p>
-                    <p className="text-white/40 text-sm mb-10">Caso a janela não abriu, <a href={`https://wa.me/5527988995055`} target="_blank" rel="noreferrer" className="underline hover:text-accent transition-colors">clique aqui</a>.</p>
-                    <Button onClick={resetBooking} variant="outline" className="border-white/20 text-white hover:bg-white hover:text-black rounded-none h-11 px-8 text-xs uppercase tracking-widest" data-testid="button-reset-booking">
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-serif font-bold mb-2">Mensagem Enviada!</h3>
+                      <p className="text-white/50 max-w-sm">Sua solicitação foi enviada pelo WhatsApp. A barbearia entrará em contato para confirmar o horário.</p>
+                    </div>
+                    <Button onClick={resetBooking} variant="outline" className="rounded-none border-white/20 text-white hover:bg-white hover:text-black uppercase tracking-widest text-xs h-11 px-8 mt-2">
                       Fazer outro agendamento
                     </Button>
                   </motion.div>
@@ -548,75 +385,78 @@ export default function Home() {
       </section>
 
       {/* MAP SECTION */}
-      <section className="bg-black border-t border-white/10">
-        <div className="max-w-6xl mx-auto px-6 py-16">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp} className="mb-10">
-            <h2 className="text-3xl md:text-4xl font-serif font-bold mb-3">Como nos encontrar</h2>
-            <div className="flex items-center gap-3 text-white/60 text-sm mt-4">
-              <MapPin className="w-4 h-4 text-accent shrink-0" />
-              <span>Av. Jacaranema, 315 — Santa Paula 1, Vila Velha - ES</span>
+      <section className="bg-black border-t border-white/5">
+        <div className="max-w-7xl mx-auto px-6 py-20">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp} className="mb-12">
+            <h2 className="text-3xl md:text-5xl font-serif font-bold mb-4">Como Chegar</h2>
+            <div className="w-16 h-1 bg-accent" />
+          </motion.div>
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+            <div className="lg:col-span-2 flex flex-col justify-center gap-6">
+              <div className="flex items-start gap-4">
+                <MapPin className="w-5 h-5 text-accent shrink-0 mt-1" />
+                <div>
+                  <p className="text-xs uppercase tracking-widest text-white/40 mb-1">Endereço</p>
+                  <p className="text-white/80 leading-relaxed">Av. Jacaranema, 315<br />Santa Paula 1, Vila Velha - ES</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-4">
+                <Clock className="w-5 h-5 text-accent shrink-0 mt-1" />
+                <div>
+                  <p className="text-xs uppercase tracking-widest text-white/40 mb-1">Horário</p>
+                  <p className="text-white/80">Segunda — Sábado<br />08:00 — 21:00</p>
+                </div>
+              </div>
             </div>
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}
-            className="w-full overflow-hidden border border-white/10"
-            style={{ height: 380 }}
-          >
-            <iframe
-              title="Localização Barbearia Rocky Amaral"
-              src="https://maps.google.com/maps?q=Av.+Jacaranema+315+Santa+Paula+Vila+Velha+ES+Brazil&output=embed&z=16"
-              width="100%"
-              height="100%"
-              style={{ border: 0, filter: "invert(90%) hue-rotate(180deg) saturate(0.8)" }}
-              allowFullScreen
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              data-testid="map-embed"
-            />
-          </motion.div>
+            <div className="lg:col-span-3 h-72 lg:h-80 overflow-hidden border border-white/10 relative">
+              <div className="absolute inset-0 z-10 pointer-events-none" style={{ background: "linear-gradient(to bottom, transparent 80%, black)" }} />
+              <iframe
+                title="Barbearia Rocky Amaral"
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3741.8!2d-40.308!3d-20.361!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMjDCsDIxJzM5LjYiUyA0MMKwMTgnMjguOCJX!5e0!3m2!1spt-BR!2sbr!4v1000000000000"
+                className="w-full h-full grayscale contrast-125 brightness-50"
+                style={{ border: 0, filter: "grayscale(100%) contrast(1.2) brightness(0.5)" }}
+                allowFullScreen
+                loading="lazy"
+              />
+            </div>
+          </div>
         </div>
       </section>
 
       {/* FOOTER */}
-      <footer className="bg-black border-t border-white/10 pt-20 pb-10 px-6">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 mb-16">
-          <div>
-            <h3 className="font-serif text-3xl font-bold mb-6">Rocky Amaral</h3>
-            <p className="text-white/50 text-sm leading-relaxed max-w-sm">Barbearia premium para homens que valorizam o cuidado clássico e a precisão técnica. A excelência não é uma opção, é a regra.</p>
+      <footer className="bg-black border-t border-white/10 py-16 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
+            <div>
+              <div className="font-serif text-3xl font-bold mb-4">R.A</div>
+              <p className="text-white/40 text-sm leading-relaxed max-w-xs">Tradição, precisão e estilo. Barbearia Rocky Amaral — Vila Velha, ES.</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-widest text-white/40 mb-4 font-bold">Horário</p>
+              <p className="text-white/60">Segunda — Sábado</p>
+              <p className="text-white font-medium">08:00 — 21:00</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-widest text-white/40 mb-4 font-bold">Contato</p>
+              <div className="flex flex-col gap-3">
+                <a href="https://www.instagram.com/barbearia.rockyamaral?igsh=cTIyNmh1c2V4ejJp" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-white/60 hover:text-white transition-colors text-sm">
+                  <Instagram className="w-4 h-4" />
+                  @barbearia.rockyamaral
+                </a>
+                <a href="https://wa.me/5527988995055" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-white/60 hover:text-white transition-colors text-sm">
+                  <Phone className="w-4 h-4" />
+                  (27) 98899-5055
+                </a>
+                <div className="flex items-start gap-2 text-white/60 text-sm">
+                  <MapPin className="w-4 h-4 shrink-0 mt-0.5" />
+                  Av. Jacaranema, 315 — Santa Paula 1, Vila Velha - ES
+                </div>
+              </div>
+            </div>
           </div>
-          <div>
-            <h4 className="text-xs uppercase tracking-widest text-accent mb-6 font-bold">Contato</h4>
-            <ul className="space-y-4 text-white/70">
-              <li className="flex items-start gap-3">
-                <MapPin className="w-5 h-5 text-white/40 shrink-0" />
-                <span className="text-sm">Av. Jacaranema, 315<br />Santa Paula 1, Vila Velha - ES</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <Phone className="w-5 h-5 text-white/40 shrink-0" />
-                <a href="https://wa.me/5527988995055" className="text-sm hover:text-accent transition-colors" target="_blank" rel="noreferrer">+55 (27) 98899-5055</a>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="text-xs uppercase tracking-widest text-accent mb-6 font-bold">Horário de Funcionamento</h4>
-            <ul className="space-y-2 text-white/70 text-sm">
-              <li className="flex justify-between border-b border-white/5 pb-2">
-                <span>Segunda — Sábado</span>
-                <span>08:00 — 21:00</span>
-              </li>
-              <li className="flex justify-between pb-2 text-white/40">
-                <span>Domingo</span>
-                <span>Fechado</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between pt-8 border-t border-white/10 text-xs text-white/40">
-          <p>© 2025 Rocky Amaral Barbearia. Todos os direitos reservados.</p>
-          <div className="flex gap-6 mt-4 md:mt-0">
-            <a href="https://www.instagram.com/barbearia.rockyamaral?igsh=cTIyNmh1c2V4ejJp" target="_blank" rel="noreferrer" className="hover:text-accent transition-colors" data-testid="link-instagram">
-              <Instagram className="w-4 h-4" />
-            </a>
+          <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between gap-4 text-xs text-white/20 uppercase tracking-widest">
+            <span>© {new Date().getFullYear()} Barbearia Rocky Amaral</span>
+            <span>Vila Velha — ES</span>
           </div>
         </div>
       </footer>
