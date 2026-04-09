@@ -4,7 +4,7 @@ import { appointmentsTable, servicesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { CreateAppointmentBody } from "@workspace/api-zod";
 
-const OWNER_WHATSAPP = "5527988995055";
+const OWNER_WHATSAPP = "5527988513627";
 
 const AVAILABLE_TIMES = [
   "08:00", "09:00", "10:00", "11:00", "12:00",
